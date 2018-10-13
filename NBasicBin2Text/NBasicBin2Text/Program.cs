@@ -192,7 +192,7 @@ namespace NBasicBin2Text
 };
         private static int stricmp(string a, string b)
         {
-            return a.ToLower() == b.ToLower() ? 1 : 0;
+            return a.ToLower() == b.ToLower() ? 0 : 1;
         }
 
         private const int EOF = -1;
@@ -210,7 +210,7 @@ namespace NBasicBin2Text
         private static void usage()
         {
             Console.WriteLine("N-BASIC Binary to Text converter");
-            Console.WriteLine("usage; NBasic2Text [-p] INPUTFILE >OUTPUTFILE");
+            Console.WriteLine("usage; NBasic2Text [-p] [-e] INPUTFILE >OUTPUTFILE");
         }
 
         static int Main(string[] args)
@@ -218,30 +218,19 @@ namespace NBasicBin2Text
             int argc = args.Length;
             string[] argv = args;
 
-            if (argc != 1 && argc != 2)
+            bool bPretty = false;
+            string extraSpace = "";
+            string filename = null;
+            foreach (var item in args)
+            {
+                if (stricmp(item, "-p") == 0) bPretty = true;
+                else if (stricmp(item, "-e") == 0) extraSpace = " ";
+                else filename = item;
+            }
+            if( filename == null)
             {
                 usage();
                 return 2;
-            }
-
-            bool bPretty = false;
-            string filename = null;
-            if (argc == 2)
-            {
-                if (stricmp(argv[0], "-p") == 0)
-                {
-                    bPretty = true;
-                }
-                else
-                {
-                    usage();
-                    return 2;
-                }
-                filename = argv[1];
-            }
-            else
-            {
-                filename = argv[0];
             }
 
             using (var fp = File.OpenRead(filename))
@@ -430,7 +419,7 @@ namespace NBasicBin2Text
                         }
                         else if (ch >= 0x81 && ch <= 0xfe && quoteMode == false && remOrDataMode == false)
                         {
-                            Console.Write(" {0} ",keywordsBase[ch - 0x81]);
+                            Console.Write(extraSpace + "{0}" + extraSpace, keywordsBase[ch - 0x81]);
                             if (ch == 0x8f)
                             {   // REM
                                 remOrDataMode = true;
@@ -445,11 +434,11 @@ namespace NBasicBin2Text
                             int ch2 = (fgetc(fp) & 0xff);
                             if (ch2 >= 0x81 && ch2 <= 0xfd)
                             {
-                                Console.Write(" {0} ", keywordsFF[ch2 - 0x81]);
+                                Console.Write(extraSpace + "{0}" + extraSpace, keywordsFF[ch2 - 0x81]);
                             }
                             else if (ch2 == 0xec)
                             {
-                                Console.Write(" IEEE ");
+                                Console.Write(extraSpace + "IEEE" + extraSpace);
                             }
                         }
                         else if (ch >= 0x20 && ch <= 0x7e)
