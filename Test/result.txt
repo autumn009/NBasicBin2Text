@@ -1,4 +1,3 @@
-..\NBasicBin2Text\NBasicBin2Text\Properties\launchSettings.json ‚©‚ç‚Ì‹N“®İ’è‚ğg—p’†...
 10 A%=1234+&H1234+&O1234
 20 B!=1234.56
 30 C#=1024.00111118316
