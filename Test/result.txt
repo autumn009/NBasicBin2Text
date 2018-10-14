@@ -1,6 +1,9 @@
 ..\NBasicBin2Text\NBasicBin2Text\Properties\launchSettings.json Ç©ÇÁÇÃãNìÆê›íËÇégópíÜ...
-10 A%=1234+&O1234+&O1234
+10 A%=1234+&H1234+&O1234
 20 B!=1234.56
-30 C#=1234.56
-40 D$="1234"
+30 C#=1024.00111118316
+40 D$="XYZ"
 50 PRINT A%,B!,C#,D$
+60 PRINT 0+1+2+3+4+4+6+7+8+9
+70 GOTO 80
+80 PRINT "multi ";:PRINT "statement"
