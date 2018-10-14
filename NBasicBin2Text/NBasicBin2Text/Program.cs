@@ -329,6 +329,7 @@ namespace NBasicBin2Text
                             int v3 = fgetc(fp);
                             int v4 = fgetc(fp);
                             int kasu = (v1 & 0xff) + ((v2 & 0xff) << 8) + ((v3 & 0x7f) << 16);
+                            System.Diagnostics.Debug.Assert((v3 & 0x80) == 0);
                             int sisu = v4 - 0x81;
                             float r = 1;
                             float d = 0.5f;
@@ -374,9 +375,20 @@ namespace NBasicBin2Text
                             int v8 = fgetc(fp);
                             int kasu1 = (v1 & 0xff) + ((v2 & 0xff) << 8) + ((v3 & 0xff) << 16);
                             int kasu2 = (v4 & 0xff) + ((v5 & 0xff) << 8) + ((v6 & 0xff) << 16) + ((v7 & 0x7f) << 24);
+                            System.Diagnostics.Debug.Assert((v7 & 0x80) == 0);
                             int sisu = v8 - 0x81;
                             double r = 1;
                             double d = 0.5;
+                            int mask2 = 0x40000000;
+                            for (int i = 0; i < 31; i++)
+                            {
+                                if ((kasu2 & mask2) != 0)
+                                {
+                                    r = r + d;
+                                }
+                                mask2 >>= 1;
+                                d /= 2.0;
+                            }
                             int mask1 = 0x800000;
                             for (int i = 0; i < 24; i++)
                             {
@@ -385,16 +397,6 @@ namespace NBasicBin2Text
                                     r = r + d;
                                 }
                                 mask1 >>= 1;
-                                d /= 2.0;
-                            }
-                            int mask2 = 0x40000000;
-                            for ( int i = 0; i < 31; i++)
-                            {
-                                if ((kasu2 & mask2) != 0)
-                                {
-                                    r = r + d;
-                                }
-                                mask2 >>= 1;
                                 d /= 2.0;
                             }
                             if (sisu == 0)
@@ -415,7 +417,10 @@ namespace NBasicBin2Text
                                     r *= 2.0;
                                 }
                             }
-                            Console.Write(r);
+                            var s = r.ToString();
+                            if (s.Contains("E")) s = s.Replace("E", "D");
+                            else s = s + "#";
+                            Console.Write(s);
                         }
                         else if (ch >= 0x81 && ch <= 0xfe && quoteMode == false && remOrDataMode == false)
                         {
