@@ -493,10 +493,10 @@ namespace NBasicBin2Text
                 }
                 finally
                 {
+                    if (bLastEOF) putchar(0x1a);
                     if (dstFile != null) dstFile.Dispose();
                 }
             }
-            if (bLastEOF) putchar(0x1a);
             return 0;
 
             void putchar(int ch)

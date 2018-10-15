@@ -20,4 +20,14 @@ set diff=tstascpe
 set dst=resultpe.txt
 call runtestsub.cmd
 
+set opt=-g
+set diff=tstascg
+set dst=resultg.txt
+call runtestsub.cmd
+
+set opt=-l
+set diff=tstascl
+set dst=resultl.txt
+call runtestsub.cmd
+
 pause
