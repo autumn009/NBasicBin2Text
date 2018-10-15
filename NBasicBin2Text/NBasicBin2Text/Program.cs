@@ -205,7 +205,7 @@ namespace NBasicBin2Text
         private static void usage()
         {
             Console.WriteLine("N-BASIC Binary to Text converter Version 2.0");
-            Console.WriteLine("usage; NBasic2Text [-p] [-e] [-g] [-l] INPUTFILE [OUTPUTFILE]");
+            Console.WriteLine("usage: dotnet NBasic2Text [-p] [-e] [-g] [-l] INPUTFILE [OUTPUTFILE]");
         }
 
         static int Main(string[] args)
