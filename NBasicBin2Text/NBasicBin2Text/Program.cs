@@ -484,7 +484,7 @@ namespace NBasicBin2Text
                         }
                         else
                         {
-                            Console.Write("???[0x{X2}]???", ch);
+                            Console.Write("???[0x{0:X2}]???", ch);
                         }
                     }
                 }
