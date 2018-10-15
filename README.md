@@ -24,8 +24,11 @@ Converter from N-BASIC binary saved file to ASCII text
 dotnet NBasic2Text [-p] [-e] [-g] [-l] INPUTFILE [OUTPUTFILE]
 
 -p: "pretty" option
+
 -e: "extend space" option
+
 -g: "grph" option
+
 -l: "eof" option
 
   "pretty" option extract multi-statement to mutiline to readbility.
@@ -50,10 +53,28 @@ dotnet NBasic2Text [-p] [-e] [-g] [-l] INPUTFILE [OUTPUTFILE]
 
   If you use standard output to get result, some character will lost or converted.  (Recommentation is specifing output filename)
 
+  整数、単精度実数、倍精度実数の表記には互換性がないかもしれません。なぜなら、N-BASICと.NET Coreの間で表記に差が生じるからです。
+
+
+　もし、標準出力に出力した場合、一部の文字が欠落したり変化してしまう可能性があります。(出力ファイル名を指定することを推奨します)
+
 ## License
   This program is distributed under MIT license.
 
 ## Created
   This program created by Akira Kawamata.
+
+あなたの知らないN-BASICの真実: PC-8001から98DO+まで
+
+https://www.amazon.co.jp/dp/B07GDBVQ7Q
+
+アタマとカラダで理解する！コンピュータプログラムはどのように動くのか？　技術評論社　ISBN978-4-7741-9499-8
+
+http://gihyo.jp/book/2018/978-4-7741-9499-8
+
+EE8080: i8080 & CP/M emulation on the Web
+
+http://ee8080.azurewebsites.net/
+
 
 end.
