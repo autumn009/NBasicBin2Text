@@ -202,15 +202,10 @@ namespace NBasicBin2Text
             return stream.ReadByte();
         }
 
-        private static void putchar(int ch)
-        {
-            Console.Write((char)ch);
-        }
-
         private static void usage()
         {
-            Console.WriteLine("N-BASIC Binary to Text converter");
-            Console.WriteLine("usage; NBasic2Text [-p] [-e] INPUTFILE >OUTPUTFILE");
+            Console.WriteLine("N-BASIC Binary to Text converter Version 2.0");
+            Console.WriteLine("usage; NBasic2Text [-p] [-e] [-g] [-l] INPUTFILE [OUTPUTFILE]");
         }
 
         static int Main(string[] args)
@@ -219,277 +214,309 @@ namespace NBasicBin2Text
             string[] argv = args;
 
             bool bPretty = false;
+            bool bGraphWarn = false;
+            bool bLastEOF = false;
             string extraSpace = "";
-            string filename = null;
+            string srcFileName = null;
+            string dstFileName = null;
             foreach (var item in args)
             {
                 if (stricmp(item, "-p") == 0) bPretty = true;
                 else if (stricmp(item, "-e") == 0) extraSpace = " ";
-                else filename = item;
+                else if (stricmp(item, "-g") == 0) bGraphWarn = true;
+                else if (stricmp(item, "-l") == 0) bLastEOF = true;
+                else if (srcFileName == null) srcFileName = item;
+                else dstFileName = item;
             }
-            if( filename == null)
+            if( srcFileName == null)
             {
                 usage();
                 return 2;
             }
 
-            using (var fp = File.OpenRead(filename))
+            FileStream dstFile = null;
+            using (var srcFile = File.OpenRead(srcFileName))
             {
-                while (true)
+                if (dstFileName != null) dstFile = File.Create(dstFileName);
+                try
                 {
-                    // get line header
-                    int linkLow = fgetc(fp);
-                    if (linkLow == EOF)
-                    {
-                        Console.Error.WriteLine("Encounted unexpected EOF");
-                        return 2;
-                    }
-                    int linkHigh = fgetc(fp);
-                    if (linkLow == 0 && linkHigh == 0) break;
 
-                    int lineNumberLow = fgetc(fp);
-                    int lineNumberHigh = fgetc(fp);
-                    int lineNumber = (lineNumberLow & 0xff) + ((lineNumberHigh & 0xff) << 8);
-                    Console.Write("{0} ", lineNumber);
-
-                    bool remOrDataMode = false;
-                    bool quoteMode = false;
-                    // process a line
                     while (true)
                     {
-                        int ch = fgetc(fp);
-                        if (ch == EOF)
+                        // get line header
+                        int linkLow = fgetc(srcFile);
+                        if (linkLow == EOF)
                         {
                             Console.Error.WriteLine("Encounted unexpected EOF");
                             return 2;
                         }
-                        ch = ch & 0xff; // must be unsigned value
-                        if (ch == 0)
-                        {   // end of line
-                            Console.WriteLine();
-                            break;
-                        }
-                        else if (ch == 0x0b)
-                        {   // octal constatnt
-                            int vl = fgetc(fp);
-                            int vh = fgetc(fp);
-                            int val = (vl & 0xff) + ((vh & 0xff) << 8);
-                            Console.Write("&O");
-                            Console.Write(Convert.ToString(val, 8));
-                        }
-                        else if (ch == 0x0c)
-                        {   // hexa constant
-                            int vl = fgetc(fp);
-                            int vh = fgetc(fp);
-                            int val = (vl & 0xff) + ((vh & 0xff) << 8);
-                            Console.Write("&H");
-                            Console.Write(Convert.ToString(val, 16));
-                        }
-                        else if (ch == 0x0d)
-                        {   // absolute address replaced from line number
-                            Console.Error.WriteLine("Warning: Encounted Absolute Address (0x0d)");
-                            fgetc(fp);
-                            fgetc(fp);
-                        }
-                        else if (ch == 0x0e)
-                        {   // line number
-                            int vl = fgetc(fp);
-                            int vh = fgetc(fp);
-                            int val = (vl & 0xff) + ((vh & 0xff) << 8);
-                            Console.Write(val);
-                        }
-                        else if (ch == 0x0f)
-                        {   // single byte constant
-                            int val = (fgetc(fp) & 0xff);
-                            Console.Write(val);
-                        }
-                        else if (ch >= 0x11 && ch <= 0x1a)
-                        {   // one digit constant
-                            int val = ch - 0x11;
-                            Console.Write(val);
-                        }
-                        else if (ch == 0x1c)
-                        {   // two byte integer
-                            int vl = fgetc(fp);
-                            int vh = fgetc(fp);
-                            int val = (vl & 0xff) + ((vh & 0xff) << 8);
-                            if ((val & 0x8000) != 0)
-                            {
-                                unchecked
-                                {
-                                    val |= (int)0xffff0000;
-                                }
-                            }
-                            Console.Write(val);
-                        }
-                        else if (ch == 0x1d)
-                        {   // four byte float
-                            int v1 = fgetc(fp);
-                            int v2 = fgetc(fp);
-                            int v3 = fgetc(fp);
-                            int v4 = fgetc(fp);
-                            int kasu = (v1 & 0xff) + ((v2 & 0xff) << 8) + ((v3 & 0x7f) << 16);
-                            System.Diagnostics.Debug.Assert((v3 & 0x80) == 0);
-                            int sisu = v4 - 0x81;
-                            float r = 1;
-                            float d = 0.5f;
-                            int mask = 0x400000;
-                            for (int i = 0; i < 23; i++)
-                            {
-                                if ((kasu & mask) != 0)
-                                {
-                                    r = r + d;
-                                }
-                                mask >>= 1;
-                                d /= 2.0f;
-                            }
-                            if (sisu == 0)
-                            {
-                                r = (float)0.0;
-                            }
-                            if (sisu < 0)
-                            {
-                                for (int i = 0; i < Math.Abs(sisu); i++)
-                                {
-                                    r /= 2.0f;
-                                }
-                            }
-                            else
-                            {
-                                for (int i = 0; i < sisu; i++)
-                                {
-                                    r *= 2.0f;
-                                }
-                            }
-                            Console.Write(r);
-                        }
-                        else if (ch == 0x1f)
-                        {   // eight byte float
-                            int v1 = fgetc(fp);
-                            int v2 = fgetc(fp);
-                            int v3 = fgetc(fp);
-                            int v4 = fgetc(fp);
-                            int v5 = fgetc(fp);
-                            int v6 = fgetc(fp);
-                            int v7 = fgetc(fp);
-                            int v8 = fgetc(fp);
-                            int kasu1 = (v1 & 0xff) + ((v2 & 0xff) << 8) + ((v3 & 0xff) << 16);
-                            int kasu2 = (v4 & 0xff) + ((v5 & 0xff) << 8) + ((v6 & 0xff) << 16) + ((v7 & 0x7f) << 24);
-                            System.Diagnostics.Debug.Assert((v7 & 0x80) == 0);
-                            int sisu = v8 - 0x81;
-                            double r = 1;
-                            double d = 0.5;
-                            int mask2 = 0x40000000;
-                            for (int i = 0; i < 31; i++)
-                            {
-                                if ((kasu2 & mask2) != 0)
-                                {
-                                    r = r + d;
-                                }
-                                mask2 >>= 1;
-                                d /= 2.0;
-                            }
-                            int mask1 = 0x800000;
-                            for (int i = 0; i < 24; i++)
-                            {
-                                if ((kasu1 & mask1) != 0)
-                                {
-                                    r = r + d;
-                                }
-                                mask1 >>= 1;
-                                d /= 2.0;
-                            }
-                            if (sisu == 0)
-                            {
-                                r = 0.0;
-                            }
-                            if (sisu < 0)
-                            {
-                                for (int i = 0; i < Math.Abs(sisu); i++)
-                                {
-                                    r /= 2.0;
-                                }
-                            }
-                            else
-                            {
-                                for (int i = 0; i < sisu; i++)
-                                {
-                                    r *= 2.0;
-                                }
-                            }
-                            var s = r.ToString();
-                            if (s.Contains("E")) s = s.Replace("E", "D");
-                            else s = s + "#";
-                            Console.Write(s);
-                        }
-                        else if (ch >= 0x81 && ch <= 0xfe && quoteMode == false && remOrDataMode == false)
+                        int linkHigh = fgetc(srcFile);
+                        if (linkLow == 0 && linkHigh == 0) break;
+
+                        int lineNumberLow = fgetc(srcFile);
+                        int lineNumberHigh = fgetc(srcFile);
+                        int lineNumber = (lineNumberLow & 0xff) + ((lineNumberHigh & 0xff) << 8);
+                        putstr(string.Format("{0} ", lineNumber));
+
+                        bool remOrDataMode = false;
+                        bool quoteMode = false;
+                        // process a line
+                        while (true)
                         {
-                            Console.Write(extraSpace + "{0}" + extraSpace, keywordsBase[ch - 0x81]);
-                            if (ch == 0x8f)
-                            {   // REM
-                                remOrDataMode = true;
-                            }
-                            if (ch == 0x84)
-                            {   // DATA
-                                remOrDataMode = true;
-                            }
-                        }
-                        else if (ch == 0xff && quoteMode == false && remOrDataMode == false)
-                        {
-                            int ch2 = (fgetc(fp) & 0xff);
-                            if (ch2 >= 0x81 && ch2 <= 0xfd)
+                            int ch = fgetc(srcFile);
+                            if (ch == EOF)
                             {
-                                Console.Write(extraSpace + "{0}" + extraSpace, keywordsFF[ch2 - 0x81]);
+                                Console.Error.WriteLine("Encounted unexpected EOF");
+                                return 2;
                             }
-                            else if (ch2 == 0xec)
-                            {
-                                Console.Write(extraSpace + "IEEE" + extraSpace);
+                            ch = ch & 0xff; // must be unsigned value
+                            if (ch == 0)
+                            {   // end of line
+                                putnl();
+                                break;
                             }
-                        }
-                        else if (ch >= 0x20 && ch <= 0x7e)
-                        {
-                            if (ch == '"')
-                            {
-                                if (quoteMode)
+                            else if (ch == 0x0b)
+                            {   // octal constatnt
+                                int vl = fgetc(srcFile);
+                                int vh = fgetc(srcFile);
+                                int val = (vl & 0xff) + ((vh & 0xff) << 8);
+                                putstr("&O");
+                                putstr(Convert.ToString(val, 8));
+                            }
+                            else if (ch == 0x0c)
+                            {   // hexa constant
+                                int vl = fgetc(srcFile);
+                                int vh = fgetc(srcFile);
+                                int val = (vl & 0xff) + ((vh & 0xff) << 8);
+                                putstr("&H");
+                                putstr(Convert.ToString(val, 16));
+                            }
+                            else if (ch == 0x0d)
+                            {   // absolute address replaced from line number
+                                Console.Error.WriteLine("Warning: Encounted Absolute Address (0x0d)");
+                                fgetc(srcFile);
+                                fgetc(srcFile);
+                            }
+                            else if (ch == 0x0e)
+                            {   // line number
+                                int vl = fgetc(srcFile);
+                                int vh = fgetc(srcFile);
+                                int val = (vl & 0xff) + ((vh & 0xff) << 8);
+                                putstr(val);
+                            }
+                            else if (ch == 0x0f)
+                            {   // single byte constant
+                                int val = (fgetc(srcFile) & 0xff);
+                                putstr(val);
+                            }
+                            else if (ch >= 0x11 && ch <= 0x1a)
+                            {   // one digit constant
+                                int val = ch - 0x11;
+                                putstr(val);
+                            }
+                            else if (ch == 0x1c)
+                            {   // two byte integer
+                                int vl = fgetc(srcFile);
+                                int vh = fgetc(srcFile);
+                                int val = (vl & 0xff) + ((vh & 0xff) << 8);
+                                if ((val & 0x8000) != 0)
                                 {
-                                    quoteMode = false;
+                                    unchecked
+                                    {
+                                        val |= (int)0xffff0000;
+                                    }
+                                }
+                                putstr(val);
+                            }
+                            else if (ch == 0x1d)
+                            {   // four byte float
+                                int v1 = fgetc(srcFile);
+                                int v2 = fgetc(srcFile);
+                                int v3 = fgetc(srcFile);
+                                int v4 = fgetc(srcFile);
+                                int kasu = (v1 & 0xff) + ((v2 & 0xff) << 8) + ((v3 & 0x7f) << 16);
+                                System.Diagnostics.Debug.Assert((v3 & 0x80) == 0);
+                                int sisu = v4 - 0x81;
+                                float r = 1;
+                                float d = 0.5f;
+                                int mask = 0x400000;
+                                for (int i = 0; i < 23; i++)
+                                {
+                                    if ((kasu & mask) != 0)
+                                    {
+                                        r = r + d;
+                                    }
+                                    mask >>= 1;
+                                    d /= 2.0f;
+                                }
+                                if (sisu == 0)
+                                {
+                                    r = (float)0.0;
+                                }
+                                if (sisu < 0)
+                                {
+                                    for (int i = 0; i < Math.Abs(sisu); i++)
+                                    {
+                                        r /= 2.0f;
+                                    }
                                 }
                                 else
                                 {
-                                    quoteMode = true;
+                                    for (int i = 0; i < sisu; i++)
+                                    {
+                                        r *= 2.0f;
+                                    }
                                 }
-                                putchar(ch);
+                                putstr(r);
                             }
-                            else if (quoteMode == false && ch == ':')
-                            {
-                                remOrDataMode = false;
-                                if (bPretty)
+                            else if (ch == 0x1f)
+                            {   // eight byte float
+                                int v1 = fgetc(srcFile);
+                                int v2 = fgetc(srcFile);
+                                int v3 = fgetc(srcFile);
+                                int v4 = fgetc(srcFile);
+                                int v5 = fgetc(srcFile);
+                                int v6 = fgetc(srcFile);
+                                int v7 = fgetc(srcFile);
+                                int v8 = fgetc(srcFile);
+                                int kasu1 = (v1 & 0xff) + ((v2 & 0xff) << 8) + ((v3 & 0xff) << 16);
+                                int kasu2 = (v4 & 0xff) + ((v5 & 0xff) << 8) + ((v6 & 0xff) << 16) + ((v7 & 0x7f) << 24);
+                                System.Diagnostics.Debug.Assert((v7 & 0x80) == 0);
+                                int sisu = v8 - 0x81;
+                                double r = 1;
+                                double d = 0.5;
+                                int mask2 = 0x40000000;
+                                for (int i = 0; i < 31; i++)
                                 {
-                                    Console.WriteLine();
-                                    Console.Write("\t");
+                                    if ((kasu2 & mask2) != 0)
+                                    {
+                                        r = r + d;
+                                    }
+                                    mask2 >>= 1;
+                                    d /= 2.0;
+                                }
+                                int mask1 = 0x800000;
+                                for (int i = 0; i < 24; i++)
+                                {
+                                    if ((kasu1 & mask1) != 0)
+                                    {
+                                        r = r + d;
+                                    }
+                                    mask1 >>= 1;
+                                    d /= 2.0;
+                                }
+                                if (sisu == 0)
+                                {
+                                    r = 0.0;
+                                }
+                                if (sisu < 0)
+                                {
+                                    for (int i = 0; i < Math.Abs(sisu); i++)
+                                    {
+                                        r /= 2.0;
+                                    }
+                                }
+                                else
+                                {
+                                    for (int i = 0; i < sisu; i++)
+                                    {
+                                        r *= 2.0;
+                                    }
+                                }
+                                var s = r.ToString();
+                                if (s.Contains("E")) s = s.Replace("E", "D");
+                                else s = s + "#";
+                                putstr(s);
+                            }
+                            else if (ch >= 0x81 && ch <= 0xfe && quoteMode == false && remOrDataMode == false)
+                            {
+                                putstr(string.Format(extraSpace + "{0}" + extraSpace, keywordsBase[ch - 0x81]));
+                                if (ch == 0x8f)
+                                {   // REM
+                                    remOrDataMode = true;
+                                }
+                                if (ch == 0x84)
+                                {   // DATA
+                                    remOrDataMode = true;
+                                }
+                            }
+                            else if (ch == 0xff && quoteMode == false && remOrDataMode == false)
+                            {
+                                int ch2 = (fgetc(srcFile) & 0xff);
+                                if (ch2 >= 0x81 && ch2 <= 0xfd)
+                                {
+                                    putstr(string.Format(extraSpace + "{0}" + extraSpace, keywordsFF[ch2 - 0x81]));
+                                }
+                                else if (ch2 == 0xec)
+                                {
+                                    putstr(string.Format(extraSpace + "IEEE" + extraSpace));
+                                }
+                            }
+                            else if (ch >= 0x20 && ch <= 0x7e)
+                            {
+                                if (ch == '"')
+                                {
+                                    if (quoteMode)
+                                    {
+                                        quoteMode = false;
+                                    }
+                                    else
+                                    {
+                                        quoteMode = true;
+                                    }
+                                    putchar(ch);
+                                }
+                                else if (quoteMode == false && ch == ':')
+                                {
+                                    remOrDataMode = false;
+                                    if (bPretty)
+                                    {
+                                        putnl();
+                                        putstr("\t");
+                                    }
+                                    else
+                                    {
+                                        putchar(ch);
+                                    }
                                 }
                                 else
                                 {
                                     putchar(ch);
                                 }
                             }
+                            else if (bGraphWarn && (ch < 0xa1 || ch > 0xdf))
+                                putstr(string.Format("???[0x{0:X2}]???", ch));
                             else
-                            {
                                 putchar(ch);
-                            }
-                        }
-                        else if (ch >= 0xa1 && ch <= 0xdf)
-                        {
-                            putchar(ch);
-                        }
-                        else
-                        {
-                            Console.Write("???[0x{0:X2}]???", ch);
                         }
                     }
                 }
+                finally
+                {
+                    if (dstFile != null) dstFile.Dispose();
+                }
             }
+            if (bLastEOF) putchar(0x1a);
             return 0;
+
+            void putchar(int ch)
+            {
+                if (dstFile == null)
+                    Console.Write((char)ch);
+                else
+                    dstFile.WriteByte((byte)ch);
+            }
+            void putstr(object s)
+            {
+                foreach (var item in s.ToString()) putchar(item);
+            }
+            void putnl()
+            {
+                if (dstFile == null)
+                    Console.WriteLine();
+                else
+                    putstr("\r\n");
+            }
         }
     }
 }
