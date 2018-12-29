@@ -443,13 +443,18 @@ namespace NBasicBin2Text
                             else if (ch == 0xff && quoteMode == false && remOrDataMode == false)
                             {
                                 int ch2 = (fgetc(srcFile) & 0xff);
-                                if (ch2 >= 0x81 && ch2 <= 0xfd)
+                                int ch2Munus81 = ch2 - 0x81;
+                                if (ch2Munus81 >= 0 && ch2Munus81 < keywordsFF.Length)
                                 {
-                                    putstr(string.Format(extraSpace + "{0}" + extraSpace, keywordsFF[ch2 - 0x81]));
+                                    putstr(string.Format(extraSpace + "{0}" + extraSpace, keywordsFF[ch2Munus81]));
                                 }
                                 else if (ch2 == 0xec)
                                 {
                                     putstr(string.Format(extraSpace + "IEEE" + extraSpace));
+                                }
+                                else
+                                {
+                                    putstr(string.Format("???[0x{0:X2}][0x{1:X2}]???", ch, ch2));
                                 }
                             }
                             else if (ch >= 0x20 && ch <= 0x7e)
