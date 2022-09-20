@@ -204,7 +204,7 @@ namespace NBasicBin2Text
 
         private static void usage()
         {
-            Console.WriteLine("N-BASIC Binary to Text converter Version 2.0");
+            Console.WriteLine("N-BASIC Binary to Text converter Version 3.0");
             Console.WriteLine("usage: dotnet NBasic2Text [-p] [-e] [-g] [-l] INPUTFILE [OUTPUTFILE]");
         }
 
@@ -234,9 +234,14 @@ namespace NBasicBin2Text
                 return 2;
             }
 
+            bool cmtFlag = Path.GetExtension(srcFileName).ToLower() == ".cmt";
+
             FileStream dstFile = null;
             using (var srcFile = File.OpenRead(srcFileName))
             {
+                // if CMT file, skip hedaer(10byte)+filename(6byte)
+                if (cmtFlag) for (int i = 0; i < 16; i++) srcFile.ReadByte();
+
                 if (dstFileName != null) dstFile = File.Create(dstFileName);
                 try
                 {
