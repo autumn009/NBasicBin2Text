@@ -13,11 +13,11 @@ Converter from N-BASIC binary saved file to ASCII text
 　SAVE "filename",Aでも、ASCII形式のファイルは得られますが、N-BASICが動作する環境がない、または"pretty", "extend space"オプションを使うときはこのツールを利用できます。
 
 ## Requied Environment
-  .NET Core 2.1
+  .NET Core 6.0
 
-  (Windows, Mac or Linux supported by .NET Core 2.1)
+  (Windows, Mac or Linux supported by .NET Core 6.0)
 
-  (.NET Core 2.1でサポートされたWindows, Mac, Linux)
+  (.NET Core 6.0でサポートされたWindows, Mac, Linux)
 
 ## How to use?
 
@@ -47,6 +47,8 @@ dotnet NBasic2Text [-p] [-e] [-g] [-l] INPUTFILE [OUTPUTFILE]
 
 　"eof"オプションは出力ファイルの末尾にEOF(0x1A)を追加します。
 
+　入力ファイルの拡張子がCMTの場合、CMT形式と見なしてヘッダー+ファイル名の16バイトを読み飛ばします。
+
 ## Limitation
 
   Integet, single, double numbers replesentation may incompatible due to incompatibity between N-BASIC and .NET Core.
@@ -71,6 +73,10 @@ https://www.amazon.co.jp/dp/B07GDBVQ7Q
 アタマとカラダで理解する！コンピュータプログラムはどのように動くのか？　技術評論社　ISBN978-4-7741-9499-8
 
 http://gihyo.jp/book/2018/978-4-7741-9499-8
+
+T88Extoracotor: Extract T88 File for PC-8801 Tape Data
+
+https://github.com/autumn009/T88Extractor
 
 EE8080: i8080 & CP/M emulation on the Web
 
